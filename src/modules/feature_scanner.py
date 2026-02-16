@@ -248,3 +248,61 @@ class FeatureScanner:
                     )
                 )
         return results
+
+
+def scan_negative_features(
+    client: ApiClient,
+    coords: GenomicCoordinates,
+    full_sequence: str,
+    enabled_features: list[str],
+    maf_threshold: float,
+    gc_window: int,
+    gc_step: int,
+    gc_min: float,
+    gc_max: float,
+    homopolymer_at: int,
+    homopolymer_gc: int,
+) -> list[NegativeFeature]:
+    options = FeatureScanOptions(
+        maf_threshold=maf_threshold,
+        gc_window=gc_window,
+        gc_step=gc_step,
+        gc_min=gc_min,
+        gc_max=gc_max,
+        homopolymer_at=homopolymer_at,
+        homopolymer_gc=homopolymer_gc,
+    )
+    scanner = FeatureScanner(client)
+    features, _ = scanner.scan(
+        coordinates=coords,
+        full_sequence=full_sequence,
+        requested_features=enabled_features,
+        options=options,
+    )
+    return features
+
+
+def _scan_extreme_gc(
+    seq: str,
+    window: int,
+    step: int,
+    gc_min: float,
+    gc_max: float,
+) -> list[NegativeFeature]:
+    if window <= 0 or step <= 0:
+        return []
+    windows = scan_extreme_gc_windows(seq, window_size=window, step=step, gc_min=gc_min, gc_max=gc_max)
+    merged = seq_utils.merge_intervals_with_gap(windows, gap=step)
+    out: list[NegativeFeature] = []
+    for start, end, gc in merged:
+        out.append(
+            NegativeFeature(
+                feature_type="extreme_gc",
+                start=start,
+                end=end,
+                description=f"Extreme GC window(s): GC<{gc_min}% or GC>{gc_max}%",
+                source="internal_gc",
+                score=gc,
+            )
+        )
+    return out

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 
 
 _AMBIGUOUS_PATTERN = re.compile(r"[^ATGCatgc]+")
@@ -78,3 +79,27 @@ def scan_ambiguous(sequence: str) -> list[tuple[int, int]]:
     merged.append((start, end))
     return merged
 
+
+def gc_percent(seq: str) -> float:
+    if not seq:
+        return 0.0
+    gc = sum(1 for c in seq if c in "GgCc")
+    return (gc / len(seq)) * 100.0
+
+
+def sliding_windows(seq: str, window: int, step: int) -> Iterator[tuple[int, str]]:
+    if window <= 0 or step <= 0:
+        raise ValueError("window and step must be positive")
+    for i in range(0, max(0, len(seq) - window + 1), step):
+        yield i, seq[i : i + window]
+
+
+def find_homopolymers(seq: str, at_threshold: int = 5, gc_threshold: int = 4) -> list[tuple[int, int, str, int]]:
+    hits: list[tuple[int, int, str, int]] = []
+    for base, start, end in scan_homopolymers(seq, at_run=at_threshold, gc_run=gc_threshold):
+        hits.append((start, end, base, end - start))
+    return sorted(hits, key=lambda item: (item[0], item[1]))
+
+
+def find_ambiguous_runs(seq: str) -> list[tuple[int, int]]:
+    return scan_ambiguous(seq)

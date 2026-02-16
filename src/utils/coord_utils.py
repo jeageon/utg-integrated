@@ -18,6 +18,20 @@ def ensembl_to_relative(
     return rel_start, rel_end
 
 
+def ensembl_to_rel0(
+    feature_start_1based: int,
+    feature_end_1based: int,
+    ext_start_1based: int,
+    seq_len: int,
+) -> tuple[int, int]:
+    return ensembl_to_relative(
+        feature_start_1based=feature_start_1based,
+        feature_end_1based=feature_end_1based,
+        ext_start_1based=ext_start_1based,
+        seq_len=seq_len,
+    )
+
+
 def apply_flank(
     gene_start_1based: int,
     gene_end_1based: int,
@@ -75,4 +89,3 @@ def build_chunks(region_start: int, region_end: int, chunk_size: int) -> list[Ch
         chunks.append(Chunk(current, chunk_end))
         current = chunk_end + 1
     return chunks
-
