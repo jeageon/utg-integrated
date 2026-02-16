@@ -25,6 +25,20 @@ streamlit run src/webui.py
 
 브라우저에서 UniProt ID와 파이프라인 옵션을 입력하면 실행 결과(.gb, metadata.json)를 바로 다운로드할 수 있습니다.
 
+### 바탕화면 바로가기(Quick Launch)
+
+- 실행 스크립트:
+  - `scripts/launch_utg_webui.command` (Web UI)
+  - `scripts/launch_utg_cli.command` (CLI)
+- 바탕화면에 바로가기 생성 예시:
+  ```bash
+  cp scripts/launch_utg_webui.command ~/Desktop/UTG-WebUI.command
+  cp scripts/launch_utg_cli.command ~/Desktop/UTG-CLI.command
+  ```
+- `.command` 파일은 더블클릭 시 터미널에서 실행됩니다.
+
+※ 현재 환경에서는 위 파일을 macOS 바탕화면에 복사해 두어 바로 실행 가능합니다.
+
 주의:
 - 웹 UI는 실행한 현재 머신에서 API 호출을 수행합니다.
 - 출력 디렉터리는 웹앱 컨테이너의 파일시스템 경로를 사용합니다.
