@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 from dataclasses import asdict
+from typing import Optional, Union
 
 import click
 
@@ -36,7 +37,7 @@ def run_pipeline(
     flank_mode: str = "genomic",
     assembly: str = "auto",
     mask: str = "soft",
-    features: list[str] | str = DEFAULT_FEATURES,
+    features: Union[list[str], str] = DEFAULT_FEATURES,
     maf_threshold: float = 0.01,
     gc_window: int = 50,
     gc_step: int = 10,
@@ -50,7 +51,7 @@ def run_pipeline(
     cache_ttl_hours: int = DEFAULT_CACHE_TTL_HOURS,
     offline: bool = False,
     write_metadata_json: bool = True,
-) -> tuple[Path, Path | None, dict]:
+    ) -> tuple[Path, Optional[Path], dict]:
     selected_features = _parse_features(",".join(features) if isinstance(features, list) else features)
     feature_options = FeatureScanOptions(
         maf_threshold=maf_threshold,
@@ -98,6 +99,8 @@ def run_pipeline(
     metadata = {
         "uniprot_id": uniprot_id,
         "ensembl_gene_id": coordinates.ensembl_gene_id,
+        "coordinate_source": coordinates.coordinate_source,
+        "ncbi_accession": coordinates.ncbi_accession,
         "assembly": coordinates.assembly_name,
         "region": f"{coordinates.seq_region_name}:{coordinates.ext_start_1based}-{coordinates.ext_end_1based}:{coordinates.strand}",
         "flank_bp": flank,
@@ -130,6 +133,8 @@ def run_pipeline(
         "feature_counts": dict(feature_counts),
         "warnings": warnings,
         "coordinates": coordinates.model_dump(),
+        "coordinate_source": coordinates.coordinate_source,
+        "ncbi_accession": coordinates.ncbi_accession,
     }
 
 

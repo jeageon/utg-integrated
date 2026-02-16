@@ -21,9 +21,13 @@ DEFAULT_CACHE_TTL_HOURS = 24
 DEFAULT_FLANK = 10_000
 
 EBI_COORDINATES_URL = "https://www.ebi.ac.uk/proteins/api/coordinates/{accession}"
+UNIPROT_ENTRY_URL = "https://rest.uniprot.org/uniprotkb/{accession}.json"
 UNIPROT_IDMAP_RUN = "https://rest.uniprot.org/idmapping/run"
 UNIPROT_IDMAP_STATUS = "https://rest.uniprot.org/idmapping/status/{job_id}"
 UNIPROT_IDMAP_RESULTS = "https://rest.uniprot.org/idmapping/results/{job_id}"
+NCBI_ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+NCBI_ESUMMARY = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+NCBI_EFETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 ENSEMBL_LOOKUP = "https://rest.ensembl.org/lookup/id/{ensembl_id}"
 ENSEMBL_SEQUENCE_REGION = "https://rest.ensembl.org/sequence/region/{species}/{region}"
 ENSEMBL_SEQUENCE_ID = "https://rest.ensembl.org/sequence/id/{ensembl_id}"
@@ -61,4 +65,3 @@ GENBANK_FEATURE_MAP = {
     "homopolymer": "misc_feature",
     "ambiguous": "misc_feature",
 }
-

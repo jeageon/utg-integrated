@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from ..config import (
     ENSEMBL_OVERLAP,
@@ -25,14 +25,14 @@ def _first_non_null(*values: Any) -> Any:
     return None
 
 
-def _to_float(value: Any) -> float | None:
+def _to_float(value: Any) -> Optional[float]:
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _to_int(value: Any, default: int | None = None) -> int | None:
+def _to_int(value: Any, default: Optional[int] = None) -> Optional[int]:
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -47,8 +47,8 @@ class FeatureScanner:
         self,
         coordinates: GenomicCoordinates,
         full_sequence: str,
-        requested_features: list[str] | None = None,
-        options: FeatureScanOptions | None = None,
+        requested_features: Optional[list[str]] = None,
+        options: Optional[FeatureScanOptions] = None,
     ) -> tuple[list[NegativeFeature], list[str]]:
         requested_features = requested_features or list(DEFAULT_FEATURES)
         options = options or FeatureScanOptions()
@@ -57,7 +57,10 @@ class FeatureScanner:
         requested = set(requested_features)
 
         collected: list[NegativeFeature] = []
-        collected.extend(self._scan_overlap(coordinates, requested, seq_len, warnings, options))
+        if coordinates.coordinate_source == "ensembl":
+            collected.extend(self._scan_overlap(coordinates, requested, seq_len, warnings, options))
+        else:
+            warnings.append("NCBI sequence source does not support Ensembl overlap lookup; skipped repeat/variant-based features")
         collected.extend(self._scan_internal(
             full_sequence,
             requested,
@@ -87,7 +90,6 @@ class FeatureScanner:
         options: FeatureScanOptions,
     ) -> list[NegativeFeature]:
         del warnings
-        del seq_len
         if not requested.intersection({"repeat", "simple", "variation", "structural_variation"}):
             return []
         features: list[NegativeFeature] = []
@@ -106,7 +108,11 @@ class FeatureScanner:
                 try:
                     params = {"feature": ftype}
                     url = ENSEMBL_OVERLAP.format(species=coordinates.species, region=region)
-                    resp = self.api.get(url, headers={"Content-Type": "application/json"}, params=params)
+                    resp = self.api.get(
+                        url,
+                        headers={"Accept": "application/json"},
+                        params=params,
+                    )
                 except ToolError:
                     continue
                 if not isinstance(resp.json_obj, list):
@@ -125,7 +131,7 @@ class FeatureScanner:
         coordinates: GenomicCoordinates,
         seq_len: int,
         maf_threshold: float,
-    ) -> NegativeFeature | None:
+    ) -> Optional[NegativeFeature]:
         if not isinstance(item, dict):
             return None
 
@@ -248,61 +254,3 @@ class FeatureScanner:
                     )
                 )
         return results
-
-
-def scan_negative_features(
-    client: ApiClient,
-    coords: GenomicCoordinates,
-    full_sequence: str,
-    enabled_features: list[str],
-    maf_threshold: float,
-    gc_window: int,
-    gc_step: int,
-    gc_min: float,
-    gc_max: float,
-    homopolymer_at: int,
-    homopolymer_gc: int,
-) -> list[NegativeFeature]:
-    options = FeatureScanOptions(
-        maf_threshold=maf_threshold,
-        gc_window=gc_window,
-        gc_step=gc_step,
-        gc_min=gc_min,
-        gc_max=gc_max,
-        homopolymer_at=homopolymer_at,
-        homopolymer_gc=homopolymer_gc,
-    )
-    scanner = FeatureScanner(client)
-    features, _ = scanner.scan(
-        coordinates=coords,
-        full_sequence=full_sequence,
-        requested_features=enabled_features,
-        options=options,
-    )
-    return features
-
-
-def _scan_extreme_gc(
-    seq: str,
-    window: int,
-    step: int,
-    gc_min: float,
-    gc_max: float,
-) -> list[NegativeFeature]:
-    if window <= 0 or step <= 0:
-        return []
-    windows = scan_extreme_gc_windows(seq, window_size=window, step=step, gc_min=gc_min, gc_max=gc_max)
-    merged = seq_utils.merge_intervals_with_gap(windows, gap=step)
-    out: list[NegativeFeature] = []
-    for start, end, gc in merged:
-        out.append(
-            NegativeFeature(
-                feature_type="extreme_gc",
-                start=start,
-                end=end,
-                description=f"Extreme GC window(s): GC<{gc_min}% or GC>{gc_max}%",
-                source="internal_gc",
-                score=gc,
-            )
-        )
-    return out

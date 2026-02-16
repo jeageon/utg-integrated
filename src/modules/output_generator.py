@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Optional
+import re
+
 import json
 from datetime import datetime, date
 from pathlib import Path
@@ -21,7 +24,7 @@ def _flatten_qualifier_value(value):
     return [str(value)]
 
 
-def _as_location(start: int, end: int, strand: int | None):
+def _as_location(start: int, end: int, strand: Optional[int]):
     if start < 0:
         start = 0
     if end < start:
@@ -49,18 +52,28 @@ def _feature_qualifiers(feature):
 def _build_record(bundle: SequenceRecordBundle) -> SeqRecord:
     seq = bundle.full_sequence.upper()
     coords = bundle.coordinates
+    source_label = "ENSEMBL" if coords.coordinate_source == "ensembl" else "NCBI"
+
+    source_db_xrefs = [f"UniProtKB:{coords.uniprot_id}"]
+    if coords.coordinate_source == "ensembl" and coords.ensembl_gene_id:
+        source_db_xrefs.append(f"Ensembl:{coords.ensembl_gene_id}")
+    elif coords.coordinate_source != "ensembl":
+        source_db_xrefs.append(f"NCBI_nuccore:{coords.ncbi_accession}")
+        if coords.ensembl_gene_id and re.match(r"^ENSG|^ENS\w+G\d+", coords.ensembl_gene_id):
+            source_db_xrefs.append(f"Ensembl:{coords.ensembl_gene_id}")
+
     record = SeqRecord(
         Seq(seq),
         id=coords.uniprot_id,
         name=coords.uniprot_id,
         description=(
             f"UniPcrTemplate gDNA region for {coords.uniprot_id} "
-            f"({coords.assembly_name} {coords.seq_region_name}:{coords.ext_start_1based}-{coords.ext_end_1based}, strand={coords.strand})"
+            f"({coords.assembly_name} {coords.seq_region_name}:{coords.ext_start_1based}-{coords.ext_end_1based}, strand={coords.strand}, source={source_label})"
         ),
     )
     record.annotations["molecule_type"] = "DNA"
     record.annotations["organism"] = coords.species
-    record.annotations["taxonomy"] = ["Ensembl"]
+    record.annotations["taxonomy"] = [source_label]
     record.annotations["data_file_division"] = "UNC"
     record.annotations["date"] = date.today().strftime("%d-%b-%Y").upper()
 
@@ -69,10 +82,7 @@ def _build_record(bundle: SequenceRecordBundle) -> SeqRecord:
         type="source",
         qualifiers={
             "organism": [coords.species],
-            "db_xref": [
-                f"UniProtKB:{coords.uniprot_id}",
-                f"Ensembl:{coords.ensembl_gene_id}",
-            ],
+            "db_xref": source_db_xrefs,
             "note": [
                 f"extracted with ±{coords.ext_end_1based - coords.ext_start_1based + 1} bp flank",
                 f"original genomic: {coords.assembly_name} {coords.seq_region_name}:{coords.ext_start_1based}-{coords.ext_end_1based}",
@@ -88,8 +98,12 @@ def _build_record(bundle: SequenceRecordBundle) -> SeqRecord:
         type="gene",
         qualifiers={
             "gene": [coords.display_name or coords.ensembl_gene_id],
-            "db_xref": [f"Ensembl:{coords.ensembl_gene_id}"],
-            "note": ["gene span from Ensembl lookup"],
+            "db_xref": (
+                [f"Ensembl:{coords.ensembl_gene_id}"]
+                if coords.coordinate_source == "ensembl" and coords.ensembl_gene_id
+                else [f"NCBI:{coords.ncbi_accession}"] if coords.ncbi_accession else []
+            ),
+            "note": [f"gene span from {source_label} lookup"],
         },
     )
     record.features.append(gene_feature)
@@ -131,7 +145,7 @@ def write_outputs(
     bundle: SequenceRecordBundle,
     outdir: Path,
     write_metadata_json: bool = True,
-) -> tuple[Path, Path | None]:
+) -> tuple[Path, Optional[Path]]:
     outdir.mkdir(parents=True, exist_ok=True)
     gb_path, json_path = output_paths(
         outdir,
@@ -152,4 +166,3 @@ def write_outputs(
     else:
         json_path = None
     return gb_path, json_path
-

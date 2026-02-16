@@ -20,7 +20,7 @@ python -m src.main P12345 --outdir data/output --flank 10000
 ### Web UI 실행
 
 ```bash
-streamlit run src/webui.py
+STREAMLIT_BROWSER_GATHER_USAGE_STATS=false python -m streamlit run src/webui.py
 ```
 
 브라우저에서 UniProt ID와 파이프라인 옵션을 입력하면 실행 결과(.gb, metadata.json)를 바로 다운로드할 수 있습니다.
@@ -36,6 +36,7 @@ streamlit run src/webui.py
   cp scripts/launch_utg_cli.command ~/Desktop/UTG-CLI.command
   ```
 - `.command` 파일은 더블클릭 시 터미널에서 실행됩니다.
+- 실행 스크립트는 `.venv`가 없으면 자동 생성하고 필수 패키지를 설치한 뒤 실행합니다.
 
 ※ 현재 환경에서는 위 파일을 macOS 바탕화면에 복사해 두어 바로 실행 가능합니다.
 
