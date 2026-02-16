@@ -17,6 +17,18 @@ pip install -r requirements.txt
 python -m src.main P12345 --outdir data/output --flank 10000
 ```
 
+### Web UI 실행
+
+```bash
+streamlit run src/webui.py
+```
+
+브라우저에서 UniProt ID와 파이프라인 옵션을 입력하면 실행 결과(.gb, metadata.json)를 바로 다운로드할 수 있습니다.
+
+주의:
+- 웹 UI는 실행한 현재 머신에서 API 호출을 수행합니다.
+- 출력 디렉터리는 웹앱 컨테이너의 파일시스템 경로를 사용합니다.
+
 주요 옵션:
 - `--flank`: 유전자 좌우 확장 bp(기본 10000)
 - `--flank-mode`: `genomic` 또는 `strand_relative`
@@ -31,4 +43,3 @@ python -m src.main P12345 --outdir data/output --flank 10000
 `{UniProt}.{assembly}.{chr}_{extStart}_{extEnd}.negfeatures.gb`
 
 동일 basename의 `...metadata.json`도 생성됩니다.
-
